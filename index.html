@@ -6,11 +6,7 @@
     <title>Support KES Updates - Donation</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -88,12 +84,19 @@
 
         .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
-        .btn-generate {
+        .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             margin-bottom: 20px;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            display: none;
         }
 
         .qr-section {
@@ -114,16 +117,6 @@
         .qr-section h3 {
             margin-bottom: 15px;
             color: #333;
-        }
-
-        .upi-id {
-            background: #e3f2fd;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-family: monospace;
-            font-size: 16px;
-            color: #1976d2;
         }
 
         .upload-section {
@@ -157,12 +150,6 @@
         .file-label:hover {
             background: #e8e8e8;
             border-color: #667eea;
-        }
-
-        .btn-submit {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            color: white;
-            display: none;
         }
 
         .success-message {
@@ -208,17 +195,25 @@
             color: #667eea;
             margin: 10px 0;
         }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <h1>🎓 Support KES Updates</h1>
             <p>Your contribution helps us keep students informed</p>
         </div>
 
-        <!-- Form Section -->
         <div id="formSection">
             <div class="form-group">
                 <label for="name">Full Name *</label>
@@ -240,18 +235,18 @@
                 <textarea id="message" rows="3" placeholder="Any message for the team..."></textarea>
             </div>
 
-            <button class="btn btn-generate" onclick="generateQR()">
-                Generate QR Code & Pay
+            <div class="error-message" id="errorMessage"></div>
+
+            <button class="btn btn-primary" onclick="generateQR()">
+                Continue to Payment
             </button>
         </div>
 
-        <!-- QR Section -->
         <div id="qrSection" class="qr-section">
             <h3>Scan & Pay</h3>
             <div class="amount-display">₹<span id="displayAmount">0</span></div>
-            <img id="qrImage" src="" alt="UPI QR Code">
-            <div class="upi-id" id="upiDisplay">test@okaxis</div>
-            <p style="margin-top: 10px; color: #666; font-size: 12px;">
+            <img src="assets/qr_codes/donation_qr_100rs.png" alt="UPI QR Code">
+            <p style="margin-top: 15px; color: #666; font-size: 13px;">
                 Open any UPI app and scan this code
             </p>
 
@@ -265,18 +260,16 @@
                 </div>
             </div>
 
-            <button class="btn btn-submit" id="submitBtn" onclick="submitDonation()">
+            <button class="btn btn-success" id="submitBtn" onclick="submitDonation()">
                 Submit Donation
             </button>
         </div>
 
-        <!-- Loading -->
         <div id="loading" class="loading">
             <div class="spinner"></div>
             <p>Processing...</p>
         </div>
 
-        <!-- Success -->
         <div id="success" class="success-message">
             <div class="icon">✅</div>
             <h2>Thank You!</h2>
@@ -288,66 +281,64 @@
     </div>
 
     <script>
-        // Supabase Config
         const SUPABASE_URL = 'https://uegdizdnminwhkxcdcle.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZ2RpemRubWlud2hreGNkY2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwODk2MjgsImV4cCI6MjA5NzY2NTYyOH0.2wiAHbaoNoDva_tRseDAywVMu_6AioCGlVLgoVb0d6s';
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let donationData = {};
         let selectedFile = null;
 
-        // Generate QR Code
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 3000);
+        }
+
         function generateQR() {
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const amount = document.getElementById('amount').value;
             const message = document.getElementById('message').value.trim();
 
-            // Validation
             if (!name || !email || !amount) {
-                alert('Please fill all required fields!');
+                showError('Please fill all required fields!');
                 return;
             }
 
             if (amount < 10) {
-                alert('Minimum donation amount is ₹10');
+                showError('Minimum donation amount is ₹10');
                 return;
             }
 
-            // Save data
             donationData = { name, email, amount: parseInt(amount), message };
 
-            // Show QR section
             document.getElementById('formSection').style.display = 'none';
             document.getElementById('qrSection').style.display = 'block';
             document.getElementById('displayAmount').textContent = amount;
 
-            // Generate QR using QRServer API (free, no key needed)
-            const upiUrl = `upi://pay?pa=test@okaxis&pn=KES%20Updates&am=${amount}`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUrl)}`;
-            document.getElementById('qrImage').src = qrUrl;
-
-            // Show upload section after 2 seconds
             setTimeout(() => {
                 document.getElementById('uploadSection').style.display = 'block';
             }, 2000);
         }
 
-        // Handle file selection
         function handleFileSelect() {
             const file = document.getElementById('screenshot').files[0];
             if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    showError('File size must be less than 5MB');
+                    return;
+                }
                 selectedFile = file;
                 document.getElementById('fileLabel').textContent = `✅ ${file.name}`;
                 document.getElementById('submitBtn').style.display = 'block';
             }
         }
 
-        // Submit donation
         async function submitDonation() {
             if (!selectedFile) {
-                alert('Please upload payment screenshot!');
+                showError('Please upload payment screenshot!');
                 return;
             }
 
@@ -355,25 +346,22 @@
             document.getElementById('loading').style.display = 'block';
 
             try {
-                // Upload screenshot to Supabase Storage
                 const fileExt = selectedFile.name.split('.').pop();
                 const fileName = `donation_${Date.now()}.${fileExt}`;
 
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage
                     .from('donation-screenshots')
                     .upload(fileName, selectedFile);
 
                 if (uploadError) throw uploadError;
 
-                // Get public URL
-                const { data: urlData } = supabase.storage
+                const { data: urlData } = supabaseClient.storage
                     .from('donation-screenshots')
                     .getPublicUrl(fileName);
 
                 const screenshotUrl = urlData.publicUrl;
 
-                // Save donation data
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('donations')
                     .insert([
                         {
@@ -388,13 +376,12 @@
 
                 if (error) throw error;
 
-                // Show success
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('success').style.display = 'block';
 
             } catch (err) {
                 console.error('Error:', err);
-                alert('Something went wrong! Please try again.');
+                showError('Something went wrong! Please try again.');
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('qrSection').style.display = 'block';
             }
